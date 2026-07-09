@@ -211,7 +211,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  onChanged: (value) {
+                  onSelected: (value) {
                     setState(() => _selectedCustomer = value);
                   },
                 ),

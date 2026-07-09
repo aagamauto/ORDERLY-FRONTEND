@@ -272,7 +272,7 @@ class _EditOrderScreenState extends ConsumerState<EditOrderScreen> {
                         border: OutlineInputBorder(),
                       ),
                     ),
-                    onChanged: (value) =>
+                    onSelected: (value) =>
                         setState(() => _selectedCustomer = value),
                   ),
                   const SizedBox(height: 20),
