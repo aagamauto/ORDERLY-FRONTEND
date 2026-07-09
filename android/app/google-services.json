@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1078043461971",
+    "project_id": "orderly-92fdf",
+    "storage_bucket": "orderly-92fdf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1078043461971:android:0c304095982e730888b9a6",
+        "android_client_info": {
+          "package_name": "com.aagam.aagam_order"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEUxBKbDPDRvGnXV8ix-snrqY4aigrLGY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
