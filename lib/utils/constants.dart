@@ -3,7 +3,7 @@
 /// BASE URL NOTE:
 ///   - Android Emulator  → 10.0.2.2 maps to host machine's localhost
 ///   - Physical Device   → Replace with your machine's LAN IP, e.g. 192.168.1.100
-const String kBaseUrl = 'https://aagam-order-backend.onrender.com/api';
+const String kBaseUrl = 'https://orderly-backend-qmgi.onrender.com/api';
 
 // ── Secure Storage Keys ─────────────────────────────────────────────────────
 const String kTokenKey    = 'jwt_token';
