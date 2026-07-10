@@ -31,19 +31,9 @@ class _CatalogueViewerScreenState extends ConsumerState<CatalogueViewerScreen> {
   void initState() {
     super.initState();
     _catalogue = widget.preloaded;
-    if (_catalogue == null) _loadFromList();
   }
 
-  void _loadFromList() {
-    final list = ref.read(catalogueListProvider).asData?.value;
-    if (list == null) return;
-    final found = list.where((c) => c.id == widget.id).firstOrNull;
-    if (found != null) setState(() => _catalogue = found);
-  }
-
-  Future<void> _download() async {
-    final cat = _catalogue;
-    if (cat == null) return;
+  Future<void> _download(CatalogueModel cat) async {
     setState(() => _downloading = true);
 
     try {
@@ -74,11 +64,26 @@ class _CatalogueViewerScreenState extends ConsumerState<CatalogueViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cat = _catalogue;
+    final preloaded = _catalogue;
+    // Only resolve from the list when we weren't handed a preloaded model.
+    // A one-shot read would spin forever if the screen is opened directly
+    // (deep link) before the list has loaded, or for an id that no longer
+    // exists — watching lets us settle into a viewer or a not-found state.
+    final listAsync =
+        preloaded == null ? ref.watch(catalogueListProvider) : null;
+    final cat = preloaded ??
+        listAsync?.asData?.value
+            .where((c) => c.id == widget.id)
+            .firstOrNull;
+    final isLoading = preloaded == null && (listAsync?.isLoading ?? false);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(cat?.title ?? 'Loading...'),
+        title: Text(
+          cat?.title ?? 'Loading...',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           IconButton(
             icon: _downloading
@@ -89,17 +94,52 @@ class _CatalogueViewerScreenState extends ConsumerState<CatalogueViewerScreen> {
                   )
                 : const Icon(Icons.download),
             tooltip: 'Download',
-            onPressed: (cat == null || _downloading) ? null : _download,
+            onPressed:
+                (cat == null || _downloading) ? null : () => _download(cat),
           ),
         ],
       ),
-      body: cat == null
-          ? const Center(child: CircularProgressIndicator())
-          : SfPdfViewer.network(
+      body: cat != null
+          ? SfPdfViewer.network(
               cat.fileUrl,
               canShowScrollHead: true,
               canShowScrollStatus: true,
-            ),
+            )
+          : isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.picture_as_pdf_outlined,
+                          size: 56,
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Catalogue not found',
+                          style: Theme.of(context).textTheme.titleMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'It may have been removed or is unavailable.',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          icon: const Icon(Icons.arrow_back),
+                          label: const Text('Go back'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
     );
   }
 }

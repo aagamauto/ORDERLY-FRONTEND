@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/dashboard_model.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../utils/format_utils.dart';
 
 class MyDashboardScreen extends ConsumerWidget {
   const MyDashboardScreen({super.key});
@@ -16,12 +17,22 @@ class MyDashboardScreen extends ConsumerWidget {
       body: asyncData.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 8),
-            Text('$e'),
-            TextButton(onPressed: () => ref.invalidate(myDashboardProvider), child: const Text('Retry')),
-          ]),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.error_outline, size: 48),
+                const SizedBox(height: 8),
+                Text(
+                  extractApiError(e),
+                  textAlign: TextAlign.center,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                TextButton(onPressed: () => ref.invalidate(myDashboardProvider), child: const Text('Retry')),
+              ]),
+            ),
+          ),
         ),
         data: (dashboard) => _MyDashboardBody(dashboard: dashboard),
       ),
@@ -35,15 +46,18 @@ class _MyDashboardBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
+    return GridView(
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 220,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 1.3,
+      ),
       padding: const EdgeInsets.all(16),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
       children: [
         _StatCard(label: 'My Orders', value: dashboard.totalOrders, icon: Icons.receipt_long),
         _StatCard(label: 'Items Sold', value: dashboard.totalItemsSold, icon: Icons.inventory_2),
-        _StatCard(label: 'My Revenue', value: '₹${dashboard.totalRevenue}', icon: Icons.currency_rupee),
+        _StatCard(label: 'My Revenue', value: formatAmount(dashboard.totalRevenue), icon: Icons.currency_rupee),
       ],
     );
   }
@@ -65,12 +79,22 @@ class _StatCard extends StatelessWidget {
             children: [
               Icon(icon, size: 36, color: Theme.of(context).colorScheme.primary),
               const SizedBox(height: 8),
-              Text(
-                '$value',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  '$value',
+                  maxLines: 1,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
               ),
               const SizedBox(height: 4),
-              Text(label, style: Theme.of(context).textTheme.bodyMedium, textAlign: TextAlign.center),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
         ),

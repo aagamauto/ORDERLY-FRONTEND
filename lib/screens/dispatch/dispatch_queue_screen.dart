@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../models/order_model.dart';
 import '../../providers/order_provider.dart';
+import '../../utils/format_utils.dart';
 import '../../utils/order_status.dart';
 
 /// The Employee/Admin work screen: orders still needing action, oldest first.
@@ -23,7 +24,15 @@ class DispatchQueueScreen extends ConsumerWidget {
           error: (err, _) => ListView(
             children: [
               const SizedBox(height: 80),
-              Center(child: Text('Error: $err')),
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    extractApiError(err),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
               const SizedBox(height: 8),
               Center(
                 child: ElevatedButton(
@@ -96,15 +105,18 @@ class _QueueCard extends StatelessWidget {
                     ),
                     Text(
                       order.name,
-                      style:
-                          TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Order #${order.ordId}  •  Qty ${order.totalQuantity}  •  by ${order.userName}',
+                      'Order #${order.ordId}  •  Qty ${order.totalQuantity}  •  by ${order.userName.isNotEmpty ? order.userName : 'Unknown'}',
                       style: Theme.of(context).textTheme.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -127,7 +139,9 @@ class _QueueCard extends StatelessWidget {
                     waiting <= 0 ? 'today' : '${waiting}d waiting',
                     style: TextStyle(
                       fontSize: 11,
-                      color: waiting >= 2 ? Colors.red : Colors.grey.shade600,
+                      color: waiting >= 2
+                          ? Theme.of(context).colorScheme.error
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                       fontWeight:
                           waiting >= 2 ? FontWeight.bold : FontWeight.normal,
                     ),

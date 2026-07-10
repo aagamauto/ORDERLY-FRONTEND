@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../models/product_model.dart';
 import '../../providers/product_provider.dart';
+import '../../utils/format_utils.dart';
 
 class ProductsScreen extends ConsumerStatefulWidget {
   const ProductsScreen({super.key});
@@ -52,9 +53,21 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.error_outline, size: 48),
+                  Icon(Icons.error_outline,
+                      size: 48, color: Theme.of(context).colorScheme.error),
                   const SizedBox(height: 8),
-                  Text('$e'),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      extractApiError(e),
+                      textAlign: TextAlign.center,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.error),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   TextButton(onPressed: () => ref.invalidate(productListProvider), child: const Text('Retry')),
                 ]),
               ),
@@ -66,13 +79,31 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                         p.category.toLowerCase().contains(_query)).toList();
 
                 if (filtered.isEmpty) {
-                  return const Center(child: Text('No products found.'));
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.inventory_2_outlined,
+                            size: 48,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No products found.',
+                          style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  );
                 }
 
                 return RefreshIndicator(
                   onRefresh: () async => ref.invalidate(productListProvider),
                   child: ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.only(bottom: 88),
                     itemCount: filtered.length,
                     itemBuilder: (context, i) => _ProductCard(product: filtered[i]),
                   ),
@@ -107,8 +138,17 @@ class _ProductCard extends StatelessWidget {
             style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer, fontWeight: FontWeight.bold),
           ),
         ),
-        title: Text(product.pname, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text('Category: ${product.category}'),
+        title: Text(
+          product.pname,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          'Category: ${product.category}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         trailing: const Icon(Icons.inventory_2_outlined),
       ),
     );

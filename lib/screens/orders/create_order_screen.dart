@@ -12,6 +12,8 @@ import '../../providers/order_provider.dart';
 import '../../services/api_service.dart';
 import '../../services/offline_queue.dart';
 import '../../utils/constants.dart';
+import '../../utils/format_utils.dart';
+import '../../widgets/responsive.dart';
 
 class CreateOrderScreen extends ConsumerStatefulWidget {
   const CreateOrderScreen({super.key});
@@ -165,7 +167,13 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Failed to load data: $err'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  extractApiError(err),
+                  textAlign: TextAlign.center,
+                ),
+              ),
               const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () => ref.invalidate(orderPreloadProvider),
@@ -175,11 +183,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
           ),
         ),
         data: (preload) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+          return CenteredConstrained(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                 // ── Section 1: Customer ──────────────────────────────
                 Text(
                   'Customer',
@@ -311,7 +320,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                     border: const OutlineInputBorder(),
                     filled: _mode == 'Next Visit',
                     fillColor: _mode == 'Next Visit'
-                        ? Colors.grey.shade200
+                        ? Theme.of(context).colorScheme.surfaceContainerHighest
                         : null,
                   ),
                   onChanged: (v) {
@@ -335,7 +344,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                       : const Text('Create Order'),
                 ),
                 const SizedBox(height: 16),
-              ],
+                ],
+              ),
             ),
           );
         },
@@ -484,8 +494,8 @@ class _OrderItemRowState extends State<_OrderItemRow> {
             Row(
               children: [
                 // Quantity
-                SizedBox(
-                  width: 70,
+                Expanded(
+                  flex: 2,
                   child: TextField(
                     controller: _quantityController,
                     keyboardType: TextInputType.number,
@@ -501,8 +511,8 @@ class _OrderItemRowState extends State<_OrderItemRow> {
                 ),
                 const SizedBox(width: 8),
                 // Price / Discount note
-                SizedBox(
-                  width: 100,
+                Expanded(
+                  flex: 3,
                   child: TextField(
                     controller: _pridisController,
                     decoration: const InputDecoration(
@@ -515,10 +525,10 @@ class _OrderItemRowState extends State<_OrderItemRow> {
                     },
                   ),
                 ),
-                const Spacer(),
                 // Delete
                 IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.redAccent),
+                  icon: Icon(Icons.delete,
+                      color: Theme.of(context).colorScheme.error),
                   tooltip: 'Remove item',
                   onPressed: widget.onRemove,
                 ),

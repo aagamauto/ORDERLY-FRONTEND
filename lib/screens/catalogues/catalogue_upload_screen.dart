@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../providers/catalogue_provider.dart';
 import '../../utils/constants.dart';
+import '../../widgets/responsive.dart';
 
 class CatalogueUploadScreen extends ConsumerStatefulWidget {
   const CatalogueUploadScreen({super.key});
@@ -92,7 +93,9 @@ class _CatalogueUploadScreenState extends ConsumerState<CatalogueUploadScreen> {
       context.pop();
     } on DioException catch (e) {
       if (!mounted) return;
-      _snack(e.response?.data['detail'] as String? ?? 'Upload failed');
+      final data = e.response?.data;
+      final detail = data is Map ? data['detail'] : null;
+      _snack(detail?.toString() ?? 'Upload failed');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -110,86 +113,93 @@ class _CatalogueUploadScreenState extends ConsumerState<CatalogueUploadScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Upload Catalogue')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _titleCtrl,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Title *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.title),
+      body: CenteredConstrained(
+        maxWidth: 480,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  controller: _titleCtrl,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Title *',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.title),
+                  ),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Title is required' : null,
                 ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Title is required' : null,
-              ),
-              const SizedBox(height: 16),
-              Autocomplete<String>(
-                optionsBuilder: (textValue) {
-                  if (textValue.text.isEmpty) return categories;
-                  return categories.where(
-                    (c) => c.toLowerCase().contains(textValue.text.toLowerCase()),
-                  );
-                },
-                fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
-                  if (controller.text.isEmpty && _categoryCtrl.text.isNotEmpty) {
-                    controller.text = _categoryCtrl.text;
-                  }
-                  return TextFormField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => onSubmitted(),
-                    onChanged: (v) => _categoryCtrl.text = v,
-                    decoration: InputDecoration(
-                      labelText: 'Category *',
-                      hintText: categories.isEmpty
-                          ? 'e.g. Spring Collection'
-                          : 'Select or type new...',
-                      border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.category_outlined),
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Category is required'
-                        : null,
-                  );
-                },
-                onSelected: (value) => _categoryCtrl.text = value,
-              ),
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: _loading ? null : _pickFile,
-                icon: const Icon(Icons.attach_file),
-                label: Text(_picked?.name ?? 'Pick PDF file'),
-              ),
-              if (_picked != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  '${(_picked!.size / 1024 / 1024).toStringAsFixed(2)} MB',
-                  style: Theme.of(context).textTheme.bodySmall,
+                const SizedBox(height: 16),
+                Autocomplete<String>(
+                  optionsBuilder: (textValue) {
+                    if (textValue.text.isEmpty) return categories;
+                    return categories.where(
+                      (c) => c.toLowerCase().contains(textValue.text.toLowerCase()),
+                    );
+                  },
+                  fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+                    if (controller.text.isEmpty && _categoryCtrl.text.isNotEmpty) {
+                      controller.text = _categoryCtrl.text;
+                    }
+                    return TextFormField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => onSubmitted(),
+                      onChanged: (v) => _categoryCtrl.text = v,
+                      decoration: InputDecoration(
+                        labelText: 'Category *',
+                        hintText: categories.isEmpty
+                            ? 'e.g. Spring Collection'
+                            : 'Select or type new...',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.category_outlined),
+                      ),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Category is required'
+                          : null,
+                    );
+                  },
+                  onSelected: (value) => _categoryCtrl.text = value,
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: _loading ? null : _pickFile,
+                  icon: const Icon(Icons.attach_file),
+                  label: Text(
+                    _picked?.name ?? 'Pick PDF file',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (_picked != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    '${(_picked!.size / 1024 / 1024).toStringAsFixed(2)} MB',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+                const SizedBox(height: 24),
+                SizedBox(
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: _loading ? null : _submit,
+                    icon: _loading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.cloud_upload),
+                    label: const Text('Upload', style: TextStyle(fontSize: 16)),
+                  ),
                 ),
               ],
-              const SizedBox(height: 24),
-              SizedBox(
-                height: 50,
-                child: ElevatedButton.icon(
-                  onPressed: _loading ? null : _submit,
-                  icon: _loading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.cloud_upload),
-                  label: const Text('Upload', style: TextStyle(fontSize: 16)),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

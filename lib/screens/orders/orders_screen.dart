@@ -6,6 +6,7 @@ import '../../models/order_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../services/api_service.dart';
+import '../../utils/format_utils.dart';
 import '../../utils/order_status.dart';
 
 class OrdersScreen extends ConsumerStatefulWidget {
@@ -123,7 +124,13 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Error: $err'),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        extractApiError(err),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     ElevatedButton(
                       onPressed: () => widget.mineOnly
@@ -263,8 +270,9 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                     ),
                     Text(
                       order.shop,
-                      style:
-                          TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),

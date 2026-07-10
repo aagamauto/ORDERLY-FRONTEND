@@ -7,6 +7,7 @@ import '../../providers/order_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/order_status.dart';
+import '../../widgets/responsive.dart';
 
 class OrderDetailScreen extends ConsumerWidget {
   const OrderDetailScreen({super.key, required this.orderId});
@@ -74,7 +75,8 @@ class OrderDetailScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+                foregroundColor: Theme.of(ctx).colorScheme.error),
             child: const Text('Delete'),
           ),
         ],
@@ -110,6 +112,7 @@ class OrderDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     final detailAsync = ref.watch(orderDetailProvider(orderId));
     final userRole = ref.watch(userRoleProvider);
     // Pull status/creator from cached list; falls back to myOrderList for non-admins.
@@ -134,7 +137,13 @@ class OrderDetailScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Error: $err'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  extractApiError(err),
+                  textAlign: TextAlign.center,
+                ),
+              ),
               const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () => ref.invalidate(orderDetailProvider(orderId)),
@@ -144,14 +153,39 @@ class OrderDetailScreen extends ConsumerWidget {
           ),
         ),
         data: (detail) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // ── Order Status ─────────────────────────────────────────
+          return CenteredConstrained(
+            maxWidth: kContentMaxWidth,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ── Order Status ─────────────────────────────────────────
                 if (summary != null) _StatusCard(summary: summary),
                 if (summary != null) const SizedBox(height: 16),
+
+                // ── Last edited by ───────────────────────────────────────
+                if (detail.lastEditedByName != null) ...[
+                  Row(
+                    children: [
+                      Icon(Icons.edit_note,
+                          size: 16, color: colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Last edited by ${detail.lastEditedByName}'
+                          '${detail.lastEditedDate != null ? ' • ${formatDate(detail.lastEditedDate)}' : ''}',
+                          style: TextStyle(
+                              color: colorScheme.onSurfaceVariant,
+                              fontSize: 12),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
                 // ── Order Items ──────────────────────────────────────────
                 Text(
@@ -175,6 +209,8 @@ class OrderDetailScreen extends ConsumerWidget {
                         title: Text(
                           item.pname.isNotEmpty ? item.pname : item.category,
                           style: const TextStyle(fontWeight: FontWeight.w600),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         subtitle: Text(
                           'Category: ${item.category}  •  Qty: ${item.quantity}'
@@ -221,9 +257,7 @@ class OrderDetailScreen extends ConsumerWidget {
                           const Divider(),
                           _PaymentRow(
                             label: 'Amount',
-                            value: detail.payment!.amount != null
-                                ? '₹${detail.payment!.amount}'
-                                : '—',
+                            value: formatMoney(detail.payment!.amount),
                           ),
                           const Divider(),
                           _PaymentRow(
@@ -265,7 +299,7 @@ class OrderDetailScreen extends ConsumerWidget {
                 // ── Edit (blocked once dispatched) ───────────────────────
                 if (locked)
                   Card(
-                    color: Colors.grey.shade200,
+                    color: colorScheme.surfaceContainerHighest,
                     child: const Padding(
                       padding: EdgeInsets.all(14),
                       child: Row(
@@ -298,13 +332,14 @@ class OrderDetailScreen extends ConsumerWidget {
                     icon: const Icon(Icons.delete_outline),
                     label: const Text('Delete Order'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
+                      foregroundColor: colorScheme.error,
+                      side: BorderSide(color: colorScheme.error),
                       minimumSize: const Size.fromHeight(48),
                     ),
                   ),
                 ],
-              ],
+                ],
+              ),
             ),
           );
         },
@@ -349,8 +384,9 @@ class _StatusCard extends StatelessWidget {
                   if (summary.userName != null)
                     Text(
                       'Created by: ${summary.userName}',
-                      style:
-                          TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                 ],
               ),
@@ -374,7 +410,13 @@ class _PaymentRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-        Text(value),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ],
     );
   }

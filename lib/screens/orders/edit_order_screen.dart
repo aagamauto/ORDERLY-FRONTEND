@@ -12,6 +12,8 @@ import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
+import '../../utils/format_utils.dart';
+import '../../widgets/responsive.dart';
 
 class EditOrderScreen extends ConsumerStatefulWidget {
   const EditOrderScreen({super.key, required this.orderId});
@@ -201,7 +203,13 @@ class _EditOrderScreenState extends ConsumerState<EditOrderScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Failed to load: $err'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  extractApiError(err),
+                  textAlign: TextAlign.center,
+                ),
+              ),
               const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () =>
@@ -223,7 +231,13 @@ class _EditOrderScreenState extends ConsumerState<EditOrderScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Failed to load: $err'),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    extractApiError(err),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 ElevatedButton(
                   onPressed: () => ref.invalidate(orderPreloadProvider),
@@ -238,12 +252,13 @@ class _EditOrderScreenState extends ConsumerState<EditOrderScreen> {
 
           return Scaffold(
             appBar: AppBar(title: Text('Edit Order #${widget.orderId}')),
-            body: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // ── Customer ──────────────────────────────────────────
+            body: CenteredConstrained(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // ── Customer ──────────────────────────────────────────
                   Text(
                     'Customer',
                     style: Theme.of(context)
@@ -364,7 +379,7 @@ class _EditOrderScreenState extends ConsumerState<EditOrderScreen> {
                       border: const OutlineInputBorder(),
                       filled: _mode == 'Next Visit',
                       fillColor: _mode == 'Next Visit'
-                          ? Colors.grey.shade200
+                          ? Theme.of(context).colorScheme.surfaceContainerHighest
                           : null,
                     ),
                     onChanged: (v) {
@@ -388,7 +403,8 @@ class _EditOrderScreenState extends ConsumerState<EditOrderScreen> {
                         : const Text('Save Changes'),
                   ),
                   const SizedBox(height: 16),
-                ],
+                  ],
+                ),
               ),
             ),
           );
@@ -538,8 +554,8 @@ class _EditOrderItemRowState extends State<_EditOrderItemRow> {
             Row(
               children: [
                 // Quantity
-                SizedBox(
-                  width: 70,
+                Expanded(
+                  flex: 2,
                   child: TextField(
                     controller: _quantityController,
                     keyboardType: TextInputType.number,
@@ -555,8 +571,8 @@ class _EditOrderItemRowState extends State<_EditOrderItemRow> {
                 ),
                 const SizedBox(width: 8),
                 // Price / Discount note
-                SizedBox(
-                  width: 100,
+                Expanded(
+                  flex: 3,
                   child: TextField(
                     controller: _pridisController,
                     decoration: const InputDecoration(
@@ -569,10 +585,10 @@ class _EditOrderItemRowState extends State<_EditOrderItemRow> {
                     },
                   ),
                 ),
-                const Spacer(),
                 // Delete
                 IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.redAccent),
+                  icon: Icon(Icons.delete,
+                      color: Theme.of(context).colorScheme.error),
                   tooltip: 'Remove item',
                   onPressed: widget.onRemove,
                 ),

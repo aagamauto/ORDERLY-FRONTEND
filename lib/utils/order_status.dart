@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'format_utils.dart';
+
 /// Canonical order statuses — these strings MUST match the backend
 /// db_models constants (STATUS_ORDERED, STATUS_PACKED, ...).
 const String kStatusOrdered = 'Ordered';
@@ -37,9 +39,11 @@ OrderStatusStyle orderStatusStyle(String status) {
   }
 }
 
-/// Formats a rupee value, dropping a trailing `.0`.
+/// Formats a rupee value with Indian digit grouping, dropping a trailing `.0`.
 String formatMoney(num? v) {
   if (v == null) return '—';
   final d = v.toDouble();
-  return d == d.roundToDouble() ? '₹${d.toInt()}' : '₹$d';
+  return d == d.roundToDouble()
+      ? '₹${groupIndian(d.toInt())}'
+      : '₹${d.toStringAsFixed(2)}';
 }

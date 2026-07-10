@@ -163,10 +163,21 @@ class OrderItem {
 /// Full order detail: items list + optional payment
 /// Returned by GET /Orders/{id}/ and GET /Customer/{cid}/Orders/{oid}/
 class OrderDetail {
-  const OrderDetail({required this.items, this.payment});
+  const OrderDetail({
+    required this.items,
+    this.payment,
+    this.lastEditedByName,
+    this.lastEditedDate,
+  });
 
   final List<OrderItem> items;
   final PaymentModel? payment;
+
+  /// Name of the user who last edited this order (null if never edited).
+  final String? lastEditedByName;
+
+  /// Date this order was last edited (null if never edited).
+  final DateTime? lastEditedDate;
 
   factory OrderDetail.fromJson(Map<String, dynamic> j) => OrderDetail(
         items: (j['Orders'] as List)
@@ -174,6 +185,10 @@ class OrderDetail {
             .toList(),
         payment: j['Payment'] != null
             ? PaymentModel.fromJson(j['Payment'] as Map<String, dynamic>)
+            : null,
+        lastEditedByName: j['LastEditedBy'] as String?,
+        lastEditedDate: j['LastEditedDate'] != null
+            ? DateTime.parse(j['LastEditedDate'] as String)
             : null,
       );
 }

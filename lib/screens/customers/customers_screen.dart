@@ -93,7 +93,9 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    Icon(Icons.error_outline,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.error),
                     const SizedBox(height: 12),
                     Text(
                       'Failed to load customers',
@@ -121,14 +123,19 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.person_search, size: 48, color: Colors.grey),
+                        Icon(Icons.person_search,
+                            size: 48,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                         const SizedBox(height: 12),
                         Text(
                           _searchQuery.isEmpty
                               ? 'No customers found'
                               : 'No results for "$_searchQuery"',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Colors.grey,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                         ),
                       ],
@@ -173,14 +180,24 @@ class _CustomerCard extends StatelessWidget {
         ),
         title: Text(
           customer.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
           '${customer.city}, ${customer.state}  •  📞 ${customer.contact}',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
-        trailing: Text(
-          customer.shop,
-          style: Theme.of(context).textTheme.bodySmall,
+        trailing: SizedBox(
+          width: 90,
+          child: Text(
+            customer.shop,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.end,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         ),
         onTap: () => context.push('/customers/${customer.custId}'),
       ),

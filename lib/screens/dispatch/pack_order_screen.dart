@@ -9,6 +9,7 @@ import '../../models/product_model.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../services/api_service.dart';
+import '../../utils/format_utils.dart';
 import '../../utils/order_status.dart';
 
 /// Packing-staff screen: enter MRP + packed quantity per item to make the bill,
@@ -206,7 +207,15 @@ class _PackOrderScreenState extends ConsumerState<PackOrderScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Error: $err'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  extractApiError(err),
+                  textAlign: TextAlign.center,
+                  style:
+                      TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
               const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () =>
@@ -265,7 +274,9 @@ class _PackOrderScreenState extends ConsumerState<PackOrderScreen> {
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
             Text('Ordered: ${l.orderedQty}',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -315,8 +326,12 @@ class _PackOrderScreenState extends ConsumerState<PackOrderScreen> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          boxShadow: const [
-            BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, -2)),
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context).colorScheme.shadow,
+              blurRadius: 4,
+              offset: const Offset(0, -2),
+            ),
           ],
         ),
         child: Column(
@@ -327,39 +342,54 @@ class _PackOrderScreenState extends ConsumerState<PackOrderScreen> {
               children: [
                 const Text('Bill total',
                     style: TextStyle(fontWeight: FontWeight.w600)),
-                Text(
-                  formatMoney(_billTotal),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16),
+                Flexible(
+                  child: Text(
+                    formatMoney(_billTotal),
+                    textAlign: TextAlign.end,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed:
-                        _saving ? null : () => _save(thenDispatch: false),
-                    icon: const Icon(Icons.inventory_2_outlined),
-                    label: const Text('Save Packed'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _saving ? null : _confirmDispatch,
-                    icon: _saving
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.local_shipping_outlined),
-                    label: const Text('Pack & Dispatch'),
-                  ),
-                ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final saveButton = OutlinedButton.icon(
+                  onPressed: _saving ? null : () => _save(thenDispatch: false),
+                  icon: const Icon(Icons.inventory_2_outlined),
+                  label: const Text('Save Packed'),
+                );
+                final dispatchButton = ElevatedButton.icon(
+                  onPressed: _saving ? null : _confirmDispatch,
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.local_shipping_outlined),
+                  label: const Text('Pack & Dispatch'),
+                );
+                // Narrow screens / large fonts: stack full-width to avoid overflow.
+                if (constraints.maxWidth < 360) {
+                  return Column(
+                    children: [
+                      SizedBox(width: double.infinity, child: saveButton),
+                      const SizedBox(height: 8),
+                      SizedBox(width: double.infinity, child: dispatchButton),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(child: saveButton),
+                    const SizedBox(width: 8),
+                    Expanded(child: dispatchButton),
+                  ],
+                );
+              },
             ),
           ],
         ),

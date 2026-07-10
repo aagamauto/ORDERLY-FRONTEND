@@ -5,6 +5,7 @@ import '../../models/payment_model.dart';
 import '../../providers/payment_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
+import '../../utils/order_status.dart';
 
 class PaymentsScreen extends ConsumerStatefulWidget {
   const PaymentsScreen({super.key, this.mineOnly = false});
@@ -88,6 +89,7 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
                 }
 
                 return ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
                     final p = filtered[index];
@@ -95,14 +97,18 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
                       margin: const EdgeInsets.symmetric(
                           vertical: 4, horizontal: 8),
                       child: ListTile(
-                        leading: CircleAvatar(
-                          child: const Icon(Icons.payments_outlined),
+                        leading: const CircleAvatar(
+                          child: Icon(Icons.payments_outlined),
                         ),
-                        title: Text('${p.name}  •  ${p.shop}'),
+                        title: Text(
+                          '${p.name}  •  ${p.shop}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         subtitle: Text(
                             '${p.mode}  •  ${p.date?.toString().substring(0, 10) ?? '-'}'),
                         trailing: Text(
-                          '₹${p.amount ?? 0}',
+                          formatMoney(p.amount),
                           style: Theme.of(context)
                               .textTheme
                               .titleMedium
@@ -190,8 +196,12 @@ class _UpdatePaymentSheetState extends State<_UpdatePaymentSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content:
-                  Text('Error: ${e.response?.data ?? e.message}')),
+            content: Text(
+              e.response?.data['detail'] as String? ??
+                  'Failed to update payment',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     } finally {
@@ -207,59 +217,61 @@ class _UpdatePaymentSheetState extends State<_UpdatePaymentSheet> {
       padding: EdgeInsets.fromLTRB(16, 20, 16, 16 + bottomInset),
       child: Form(
         key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Update Payment',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _amountCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Amount',
-                border: OutlineInputBorder(),
-                prefixText: '₹',
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Update Payment',
+                style: Theme.of(context).textTheme.titleLarge,
               ),
-              validator: (v) {
-                if (v == null || v.isEmpty) return 'Amount is required';
-                if (int.tryParse(v) == null) return 'Enter a valid number';
-                return null;
-              },
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: kPaymentModes.contains(_selectedMode)
-                  ? _selectedMode
-                  : kPaymentModes.first,
-              decoration: const InputDecoration(
-                labelText: 'Mode',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _amountCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Amount',
+                  border: OutlineInputBorder(),
+                  prefixText: '₹',
+                ),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Amount is required';
+                  if (int.tryParse(v) == null) return 'Enter a valid number';
+                  return null;
+                },
               ),
-              items: kPaymentModes
-                  .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) setState(() => _selectedMode = v);
-              },
-              validator: (v) =>
-                  (v == null || v.isEmpty) ? 'Select a mode' : null,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _save,
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Save'),
-            ),
-          ],
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: kPaymentModes.contains(_selectedMode)
+                    ? _selectedMode
+                    : kPaymentModes.first,
+                decoration: const InputDecoration(
+                  labelText: 'Mode',
+                  border: OutlineInputBorder(),
+                ),
+                items: kPaymentModes
+                    .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) setState(() => _selectedMode = v);
+                },
+                validator: (v) =>
+                    (v == null || v.isEmpty) ? 'Select a mode' : null,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _save,
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Save'),
+              ),
+            ],
+          ),
         ),
       ),
     );

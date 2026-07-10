@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../widgets/responsive.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -16,65 +17,78 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // User info card
-            Card(
-              child: ListTile(
-                contentPadding: const EdgeInsets.all(16),
-                leading: CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  child: Icon(Icons.person, size: 32, color: Theme.of(context).colorScheme.onPrimaryContainer),
+      body: SafeArea(
+        child: CenteredConstrained(
+          maxWidth: 600,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // User info card
+                Card(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    leading: CircleAvatar(
+                      radius: 28,
+                      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                      child: Icon(Icons.person, size: 32, color: Theme.of(context).colorScheme.onPrimaryContainer),
+                    ),
+                    title: Text(
+                      userName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: userRole.isNotEmpty
+                        ? Chip(
+                            label: Text(userRole),
+                            backgroundColor:
+                                Theme.of(context).colorScheme.secondaryContainer,
+                          )
+                        : null,
+                  ),
                 ),
-                title: Text(userName, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                subtitle: Chip(
-                  label: Text(userRole),
-                  backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+                const SizedBox(height: 16),
+
+                // Options
+                Card(
+                  child: Column(
+                    children: [
+                      if (isAdmin) ...[
+                        _ProfileTile(icon: Icons.receipt_long, label: 'All Orders', onTap: () => context.push('/orders')),
+                        _ProfileTile(icon: Icons.people, label: 'All Customers', onTap: () => context.push('/customers')),
+                        _ProfileTile(icon: Icons.payments, label: 'All Payments', onTap: () => context.push('/payments')),
+                        _ProfileTile(icon: Icons.manage_accounts, label: 'All Staff Users', onTap: () => context.push('/admin/users')),
+                        _ProfileTile(icon: Icons.person_add, label: 'Create User', onTap: () => context.push('/profile/create-user')),
+                        _ProfileTile(icon: Icons.dashboard, label: 'Global Dashboard', onTap: () => context.push('/dashboard/admin')),
+                      ] else ...[
+                        _ProfileTile(icon: Icons.receipt, label: 'My Orders', onTap: () => context.push('/orders/mine')),
+                        _ProfileTile(icon: Icons.payments, label: 'My Payments', onTap: () => context.push('/payments/mine')),
+                        _ProfileTile(icon: Icons.analytics, label: 'My Dashboard', onTap: () => context.push('/dashboard/me')),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 16),
+                const SizedBox(height: 24),
 
-            // Options
-            Card(
-              child: Column(
-                children: [
-                  if (isAdmin) ...[
-                    _ProfileTile(icon: Icons.receipt_long, label: 'All Orders', onTap: () => context.push('/orders')),
-                    _ProfileTile(icon: Icons.people, label: 'All Customers', onTap: () => context.push('/customers')),
-                    _ProfileTile(icon: Icons.payments, label: 'All Payments', onTap: () => context.push('/payments')),
-                    _ProfileTile(icon: Icons.manage_accounts, label: 'All Staff Users', onTap: () => context.push('/admin/users')),
-                    _ProfileTile(icon: Icons.person_add, label: 'Create User', onTap: () => context.push('/profile/create-user')),
-                    _ProfileTile(icon: Icons.dashboard, label: 'Global Dashboard', onTap: () => context.push('/dashboard/admin')),
-                  ] else ...[
-                    _ProfileTile(icon: Icons.receipt, label: 'My Orders', onTap: () => context.push('/orders/mine')),
-                    _ProfileTile(icon: Icons.payments, label: 'My Payments', onTap: () => context.push('/payments/mine')),
-                    _ProfileTile(icon: Icons.analytics, label: 'My Dashboard', onTap: () => context.push('/dashboard/me')),
-                  ],
-                ],
-              ),
+                // Logout
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                    foregroundColor: Theme.of(context).colorScheme.onError,
+                    minimumSize: const Size.fromHeight(50),
+                  ),
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Logout', style: TextStyle(fontSize: 16)),
+                  onPressed: () async {
+                    await ref.read(authProvider.notifier).logout();
+                    if (context.mounted) context.go('/login');
+                  },
+                ),
+              ],
             ),
-            const SizedBox(height: 24),
-
-            // Logout
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error,
-                foregroundColor: Theme.of(context).colorScheme.onError,
-                minimumSize: const Size.fromHeight(50),
-              ),
-              icon: const Icon(Icons.logout),
-              label: const Text('Logout', style: TextStyle(fontSize: 16)),
-              onPressed: () async {
-                await ref.read(authProvider.notifier).logout();
-                if (context.mounted) context.go('/login');
-              },
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/customer_model.dart';
 import '../../models/order_model.dart';
 import '../../models/payment_model.dart';
@@ -9,7 +10,36 @@ import '../../providers/auth_provider.dart';
 import '../../providers/customer_provider.dart';
 import '../../providers/payment_provider.dart';
 import '../../services/api_service.dart';
+import '../../utils/format_utils.dart';
 import '../../utils/order_status.dart';
+
+/// Opens the device's default phone dialer pre-filled with [rawNumber].
+///
+/// Strips formatting (spaces, dashes, parentheses) but keeps a leading `+` for
+/// country codes. Shows a SnackBar if the number is empty or no dialer exists.
+Future<void> _dialNumber(BuildContext context, String rawNumber) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final sanitized = rawNumber.replaceAll(RegExp(r'[^\d+]'), '');
+  if (sanitized.isEmpty) {
+    messenger.showSnackBar(
+      const SnackBar(content: Text('No phone number for this customer')),
+    );
+    return;
+  }
+  final uri = Uri(scheme: 'tel', path: sanitized);
+  try {
+    final launched = await launchUrl(uri);
+    if (!launched) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not open dialer for $sanitized')),
+      );
+    }
+  } catch (_) {
+    messenger.showSnackBar(
+      SnackBar(content: Text('Could not open dialer for $sanitized')),
+    );
+  }
+}
 
 class CustomerDetailScreen extends ConsumerStatefulWidget {
   const CustomerDetailScreen({super.key, required this.custId});
@@ -37,7 +67,8 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              Icon(Icons.error_outline,
+                  size: 48, color: Theme.of(context).colorScheme.error),
               const SizedBox(height: 12),
               Text(
                 'Failed to load customer',
@@ -111,32 +142,109 @@ class _CustomerDetailBody extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ListTile(
-                      leading: CircleAvatar(
-                        radius: 24,
-                        child: Text(
-                          customer.name.isNotEmpty
-                              ? customer.name[0].toUpperCase()
-                              : '?',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                          ),
-                        ),
-                      ),
-                      title: Text(
-                        customer.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    // Sized-to-content Row so the info block can never
+                    // bottom-overflow at larger text scales.
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text('${customer.city}, ${customer.state}'),
-                          Text('📞 ${customer.contact}'),
-                          Text('🏪 ${customer.shop}'),
+                          CircleAvatar(
+                            radius: 24,
+                            child: Text(
+                              customer.name.isNotEmpty
+                                  ? customer.name[0].toUpperCase()
+                                  : '?',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  customer.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${customer.city}, ${customer.state}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                // Tap the number to open the phone's dialer
+                                InkWell(
+                                  onTap: () =>
+                                      _dialNumber(context, customer.contact),
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 2),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.phone,
+                                          size: 16,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Flexible(
+                                          child: Text(
+                                            customer.contact,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
+                                              fontWeight: FontWeight.w600,
+                                              decoration:
+                                                  TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '🏪 ${customer.shop}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton.filled(
+                            onPressed: () =>
+                                _dialNumber(context, customer.contact),
+                            icon: const Icon(Icons.call),
+                            tooltip: 'Call ${customer.name}',
+                            style: IconButton.styleFrom(
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.primary,
+                              foregroundColor:
+                                  Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
                         ],
                       ),
-                      isThreeLine: true,
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
@@ -195,7 +303,8 @@ class _OrdersTab extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 40, color: Colors.red),
+            Icon(Icons.error_outline,
+                size: 40, color: Theme.of(context).colorScheme.error),
             const SizedBox(height: 8),
             Text(
               'Failed to load orders',
@@ -212,15 +321,18 @@ class _OrdersTab extends ConsumerWidget {
       ),
       data: (orders) {
         if (orders.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.receipt_long_outlined, size: 48, color: Colors.grey),
-                SizedBox(height: 12),
+                Icon(Icons.receipt_long_outlined,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+                const SizedBox(height: 12),
                 Text(
                   'No orders yet',
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -324,6 +436,8 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
             subtitle: Text(
               '${summary.formattedCreateDate}  •  Qty: ${summary.totalQuantity}'
               '${summary.userName != null ? '\nBy: ${summary.userName}' : ''}',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
             trailing: Chip(
               label: Text(
@@ -395,7 +509,8 @@ class _PaymentsTab extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 40, color: Colors.red),
+            Icon(Icons.error_outline,
+                size: 40, color: Theme.of(context).colorScheme.error),
             const SizedBox(height: 8),
             Text(
               'Failed to load payments',
@@ -412,15 +527,18 @@ class _PaymentsTab extends ConsumerWidget {
       ),
       data: (payments) {
         if (payments.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.payments_outlined, size: 48, color: Colors.grey),
-                SizedBox(height: 12),
+                Icon(Icons.payments_outlined,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+                const SizedBox(height: 12),
                 Text(
                   'No payments recorded',
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -446,19 +564,15 @@ class _PaymentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateStr = payment.date != null
-        ? payment.date.toString().substring(0, 10)
-        : '-';
-
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
       child: ListTile(
         leading: const Icon(Icons.payments_outlined),
         title: Text(
-          'Order #${payment.ordId}  —  ₹${payment.amount ?? 0}',
+          'Order #${payment.ordId}  —  ${formatMoney(payment.amount)}',
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
-        subtitle: Text('${payment.mode}  •  $dateStr'),
+        subtitle: Text('${payment.mode}  •  ${formatDate(payment.date)}'),
       ),
     );
   }

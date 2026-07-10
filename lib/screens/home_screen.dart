@@ -20,7 +20,13 @@ Widget _navCard(
         children: [
           Icon(icon, size: 40, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 8),
-          Text(label, style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     ),
@@ -75,7 +81,11 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Hi, $userName!'),
+        title: Text(
+          'Hi, $userName!',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           // Shows how many offline orders are waiting to sync.
           ValueListenableBuilder<int>(
@@ -103,12 +113,17 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: GridView.count(
-        crossAxisCount: 2,
-        padding: const EdgeInsets.all(16),
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        children: tiles,
+      body: SafeArea(
+        child: GridView(
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 200,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 1.0,
+          ),
+          padding: const EdgeInsets.all(16),
+          children: tiles,
+        ),
       ),
     );
   }
