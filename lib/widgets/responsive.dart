@@ -21,7 +21,11 @@ class CenteredConstrained extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    // Top-center (not Center) so short content sits at the top instead of
+    // floating in the vertical middle, while still capping width on large
+    // screens. Scroll views inside still scroll normally when content is tall.
+    return Align(
+      alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: child,

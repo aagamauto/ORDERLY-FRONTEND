@@ -100,8 +100,13 @@ class _PackOrderScreenState extends ConsumerState<PackOrderScreen> {
         orderedQty: item.quantity,
         mrpController:
             TextEditingController(text: mrp == null ? '' : _trimNum(mrp)),
+        // Empty by default so the faded "max N" hint shows and clears on
+        // typing; an untouched (empty) box packs the full ordered qty on save.
+        // Re-packing an already-packed order pre-fills the prior packed qty.
         packedQtyController: TextEditingController(
-            text: (item.packedQuantity ?? item.quantity).toString()),
+            text: item.packedQuantity != null
+                ? item.packedQuantity.toString()
+                : ''),
       ));
     }
   }
@@ -113,7 +118,9 @@ class _PackOrderScreenState extends ConsumerState<PackOrderScreen> {
     double total = 0;
     for (final l in _lines) {
       final mrp = double.tryParse(l.mrpController.text.trim()) ?? 0;
-      final qty = int.tryParse(l.packedQtyController.text.trim()) ?? 0;
+      final qtyText = l.packedQtyController.text.trim();
+      // Empty box = pack the full ordered quantity.
+      final qty = qtyText.isEmpty ? l.orderedQty : (int.tryParse(qtyText) ?? 0);
       total += mrp * qty;
     }
     return total;
@@ -124,7 +131,10 @@ class _PackOrderScreenState extends ConsumerState<PackOrderScreen> {
     try {
       final items = _lines.map((l) {
         final mrp = double.tryParse(l.mrpController.text.trim());
-        final packed = int.tryParse(l.packedQtyController.text.trim()) ?? 0;
+        final qtyText = l.packedQtyController.text.trim();
+        // Empty box = pack the full ordered quantity.
+        final packed =
+            qtyText.isEmpty ? l.orderedQty : (int.tryParse(qtyText) ?? 0);
         final map = <String, dynamic>{
           'id': l.itemId,
           'packed_quantity': packed,
@@ -279,6 +289,7 @@ class _PackOrderScreenState extends ConsumerState<PackOrderScreen> {
                     color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: 8),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: TextField(
@@ -295,7 +306,7 @@ class _PackOrderScreenState extends ConsumerState<PackOrderScreen> {
                 ),
                 const SizedBox(width: 8),
                 SizedBox(
-                  width: 110,
+                  width: 120,
                   child: TextField(
                     controller: l.packedQtyController,
                     keyboardType: TextInputType.number,
@@ -307,7 +318,13 @@ class _PackOrderScreenState extends ConsumerState<PackOrderScreen> {
                       labelText: 'Packed',
                       border: const OutlineInputBorder(),
                       isDense: true,
-                      helperText: 'max ${l.orderedQty}',
+                      // Faded "max N" hint shown inside the empty box; it
+                      // clears as soon as the packer types a quantity.
+                      floatingLabelBehavior: FloatingLabelBehavior.always,
+                      hintText: 'max ${l.orderedQty}',
+                      hintStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     onChanged: (_) => setState(() {}),
                   ),

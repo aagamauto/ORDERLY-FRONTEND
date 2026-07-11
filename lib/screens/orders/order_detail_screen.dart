@@ -215,13 +215,11 @@ class OrderDetailScreen extends ConsumerWidget {
                         subtitle: Text(
                           'Category: ${item.category}  •  Qty: ${item.quantity}'
                           '${item.packedQuantity != null ? '  •  Packed: ${item.packedQuantity}' : ''}'
-                          '${item.mrp != null ? '  •  MRP: ${formatMoney(item.mrp)}' : ''}'
                           '${item.pridis != null ? '\nNote: ${item.pridis}' : ''}',
                         ),
                         trailing: item.mrp != null
                             ? Text(
-                                formatMoney(
-                                    item.mrp! * (item.packedQuantity ?? item.quantity)),
+                                formatMoney(item.mrp),
                                 style:
                                     const TextStyle(fontWeight: FontWeight.w600),
                               )

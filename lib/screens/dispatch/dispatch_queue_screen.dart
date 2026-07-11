@@ -97,14 +97,14 @@ class _QueueCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      order.shop.isNotEmpty ? order.shop : order.name,
+                      order.name.isNotEmpty ? order.name : order.shop,
                       style: const TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 15),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      order.name,
+                      order.shop,
                       style: TextStyle(
                           fontSize: 13,
                           color: Theme.of(context).colorScheme.onSurfaceVariant),
