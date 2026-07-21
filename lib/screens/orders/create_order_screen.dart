@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:dio/dio.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
@@ -98,6 +100,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       'items': _items.map((i) => i.toJson()).toList(),
       'Amount': _mode == 'Next Visit' ? 0 : _amount,
       'Mode': _mode,
+      // Idempotency: the same key travels on the online submit AND any offline
+      // re-queue, so a network drop mid-request can't create a duplicate order.
+      'client_uuid':
+          '${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(0x7fffffff)}',
     };
 
     try {

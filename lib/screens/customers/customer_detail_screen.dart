@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../models/customer_model.dart';
 import '../../models/order_model.dart';
 import '../../models/payment_model.dart';
@@ -10,36 +9,9 @@ import '../../providers/auth_provider.dart';
 import '../../providers/customer_provider.dart';
 import '../../providers/payment_provider.dart';
 import '../../services/api_service.dart';
+import '../../utils/dialer.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/order_status.dart';
-
-/// Opens the device's default phone dialer pre-filled with [rawNumber].
-///
-/// Strips formatting (spaces, dashes, parentheses) but keeps a leading `+` for
-/// country codes. Shows a SnackBar if the number is empty or no dialer exists.
-Future<void> _dialNumber(BuildContext context, String rawNumber) async {
-  final messenger = ScaffoldMessenger.of(context);
-  final sanitized = rawNumber.replaceAll(RegExp(r'[^\d+]'), '');
-  if (sanitized.isEmpty) {
-    messenger.showSnackBar(
-      const SnackBar(content: Text('No phone number for this customer')),
-    );
-    return;
-  }
-  final uri = Uri(scheme: 'tel', path: sanitized);
-  try {
-    final launched = await launchUrl(uri);
-    if (!launched) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Could not open dialer for $sanitized')),
-      );
-    }
-  } catch (_) {
-    messenger.showSnackBar(
-      SnackBar(content: Text('Could not open dialer for $sanitized')),
-    );
-  }
-}
 
 class CustomerDetailScreen extends ConsumerStatefulWidget {
   const CustomerDetailScreen({super.key, required this.custId});
@@ -186,7 +158,7 @@ class _CustomerDetailBody extends ConsumerWidget {
                                 // Tap the number to open the phone's dialer
                                 InkWell(
                                   onTap: () =>
-                                      _dialNumber(context, customer.contact),
+                                      dialNumber(context, customer.contact),
                                   borderRadius: BorderRadius.circular(4),
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
@@ -233,7 +205,7 @@ class _CustomerDetailBody extends ConsumerWidget {
                           const SizedBox(width: 8),
                           IconButton.filled(
                             onPressed: () =>
-                                _dialNumber(context, customer.contact),
+                                dialNumber(context, customer.contact),
                             icon: const Icon(Icons.call),
                             tooltip: 'Call ${customer.name}',
                             style: IconButton.styleFrom(

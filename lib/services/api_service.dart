@@ -13,8 +13,11 @@ class DioClient {
     _dio = Dio(
       BaseOptions(
         baseUrl: kBaseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 30),
+        // Render free tier spins the server down after idle; the first request
+        // of the morning triggers a ~30-60s cold boot. Allow for it so that
+        // first call resolves instead of failing at 10s.
+        connectTimeout: const Duration(seconds: 45),
+        receiveTimeout: const Duration(seconds: 45),
         headers: {'Content-Type': 'application/json'},
       ),
     );

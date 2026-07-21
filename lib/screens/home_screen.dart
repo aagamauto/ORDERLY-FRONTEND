@@ -76,7 +76,21 @@ class HomeScreen extends ConsumerWidget {
             icon: Icons.dashboard_outlined,
             label: 'Global Dashboard',
             route: '/dashboard/admin'),
+        _navCard(context,
+            icon: Icons.insights_outlined,
+            label: 'CRM Analytics',
+            route: '/crm'),
       ],
+      if (userRole == 'Salesman' || userRole == 'Admin')
+        _navCard(context,
+            icon: Icons.map_outlined,
+            label: 'Visit Planner',
+            route: '/visits/planner'),
+      if (userRole == 'Admin' || userRole == 'Employee')
+        _navCard(context,
+            icon: Icons.call_outlined,
+            label: 'Follow-up Calls',
+            route: '/calls/today'),
     ];
 
     return Scaffold(

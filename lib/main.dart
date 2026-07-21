@@ -26,7 +26,11 @@ import 'screens/orders/orders_screen.dart';
 import 'screens/payments/payments_screen.dart';
 import 'screens/products/create_product_screen.dart';
 import 'screens/products/products_screen.dart';
+import 'screens/calls/follow_up_calls_screen.dart';
+import 'screens/crm/crm_config_screen.dart';
+import 'screens/crm/crm_dashboard_screen.dart';
 import 'screens/profile/profile_screen.dart';
+import 'screens/visits/visit_planner_screen.dart';
 import 'services/api_service.dart';
 import 'services/notification_service.dart';
 import 'services/offline_queue.dart';
@@ -192,6 +196,24 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: '/admin/users',
         builder: (context, state) => const UsersScreen(),
+      ),
+
+      // ── CRM / field-sales recommendation ────────────────────────────────────
+      GoRoute(
+        path: '/visits/planner',
+        builder: (context, state) => const VisitPlannerScreen(),
+      ),
+      GoRoute(
+        path: '/calls/today',
+        builder: (context, state) => const FollowUpCallsScreen(),
+      ),
+      GoRoute(
+        path: '/crm',
+        builder: (context, state) => const CrmDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/crm/config',
+        builder: (context, state) => const CrmConfigScreen(),
       ),
     ],
   );

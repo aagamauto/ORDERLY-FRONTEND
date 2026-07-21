@@ -7,44 +7,86 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_service.dart';
 
-/// A create-order request that was captured while offline and is waiting to sync.
-class PendingOrder {
-  PendingOrder({required this.id, required this.payload});
+/// A mutating API request captured while offline and waiting to sync.
+class PendingAction {
+  PendingAction({
+    required this.id,
+    required this.type,
+    required this.method,
+    required this.endpoint,
+    required this.payload,
+  });
 
-  final String id;
+  final String id; // also carried inside payload as client_uuid for dedup
+  final String type; // 'order' | 'visit' | 'call'
+  final String method; // 'POST' | 'PUT'
+  final String endpoint; // e.g. '/Orders/add/'
   final Map<String, dynamic> payload;
 
-  Map<String, dynamic> toJson() => {'id': id, 'payload': payload};
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'type': type,
+        'method': method,
+        'endpoint': endpoint,
+        'payload': payload,
+      };
 
-  factory PendingOrder.fromJson(Map<String, dynamic> j) => PendingOrder(
+  factory PendingAction.fromJson(Map<String, dynamic> j) => PendingAction(
         id: j['id'] as String,
+        type: (j['type'] as String?) ?? 'order',
+        method: (j['method'] as String?) ?? 'POST',
+        endpoint: (j['endpoint'] as String?) ?? '/Orders/add/',
         payload: (j['payload'] as Map).cast<String, dynamic>(),
       );
 }
 
-/// Simple offline-first queue for new orders.
+/// Offline-first queue for order / visit / call writes.
 ///
-/// When the salesman is offline, the order payload is stored locally
+/// When the device is offline the request is stored locally
 /// (shared_preferences). Whenever connectivity returns — or the app starts —
-/// the queue flushes to `POST /Orders/add/`. Fully on-device, no cost.
+/// the queue flushes. Fully on-device, no cost. Each action carries a
+/// `client_uuid` so a re-flush after a lost response can't create a duplicate.
 class OfflineQueue {
   OfflineQueue._();
   static final OfflineQueue instance = OfflineQueue._();
 
-  static const _key = 'pending_orders_v1';
+  static const _key = 'pending_actions_v1';
+  static const _legacyKey = 'pending_orders_v1';
 
-  /// Number of orders still waiting to sync. UI can listen to show a badge.
+  /// Number of items still waiting to sync. UI can listen to show a badge.
   final ValueNotifier<int> pendingCount = ValueNotifier<int>(0);
 
   bool _flushing = false;
 
   Future<void> init() async {
+    await _migrateLegacy();
     await _refreshCount();
     Connectivity().onConnectivityChanged.listen((results) {
       if (_isOnline(results)) flush();
     });
     // Best-effort flush on startup.
     flush();
+  }
+
+  /// Move any orders queued by an older (order-only) build into this queue.
+  Future<void> _migrateLegacy() async {
+    final prefs = await SharedPreferences.getInstance();
+    final legacy = prefs.getStringList(_legacyKey);
+    if (legacy == null || legacy.isEmpty) return;
+    final list = await _load();
+    for (final s in legacy) {
+      final j = jsonDecode(s) as Map<String, dynamic>;
+      list.add(PendingAction(
+        id: (j['id'] as String?) ??
+            DateTime.now().microsecondsSinceEpoch.toString(),
+        type: 'order',
+        method: 'POST',
+        endpoint: '/Orders/add/',
+        payload: (j['payload'] as Map).cast<String, dynamic>(),
+      ));
+    }
+    await _save(list);
+    await prefs.remove(_legacyKey);
   }
 
   bool _isOnline(List<ConnectivityResult> results) =>
@@ -55,15 +97,16 @@ class OfflineQueue {
     return _isOnline(results);
   }
 
-  Future<List<PendingOrder>> _load() async {
+  Future<List<PendingAction>> _load() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getStringList(_key) ?? const [];
     return raw
-        .map((s) => PendingOrder.fromJson(jsonDecode(s) as Map<String, dynamic>))
+        .map((s) =>
+            PendingAction.fromJson(jsonDecode(s) as Map<String, dynamic>))
         .toList();
   }
 
-  Future<void> _save(List<PendingOrder> list) async {
+  Future<void> _save(List<PendingAction> list) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(
         _key, list.map((p) => jsonEncode(p.toJson())).toList());
@@ -74,17 +117,41 @@ class OfflineQueue {
     pendingCount.value = (await _load()).length;
   }
 
-  /// Store an order to be sent later.
-  Future<void> enqueue(Map<String, dynamic> payload) async {
+  /// Generic enqueue. Injects the queue id into the payload as `client_uuid`
+  /// so the server can dedup a re-synced write.
+  Future<void> enqueueAction({
+    required String type,
+    required String method,
+    required String endpoint,
+    required Map<String, dynamic> payload,
+  }) async {
+    final id = DateTime.now().microsecondsSinceEpoch.toString();
+    final body = Map<String, dynamic>.from(payload)
+      ..putIfAbsent('client_uuid', () => id);
     final list = await _load();
-    list.add(PendingOrder(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      payload: payload,
+    list.add(PendingAction(
+      id: id,
+      type: type,
+      method: method,
+      endpoint: endpoint,
+      payload: body,
     ));
     await _save(list);
   }
 
-  /// Try to push every queued order. Safe to call repeatedly.
+  /// Backwards-compatible: queue a new order (unchanged call site).
+  Future<void> enqueue(Map<String, dynamic> payload) => enqueueAction(
+      type: 'order', method: 'POST', endpoint: '/Orders/add/', payload: payload);
+
+  /// Queue a "mark visit" while offline on a tour.
+  Future<void> enqueueVisit(Map<String, dynamic> payload) => enqueueAction(
+      type: 'visit', method: 'POST', endpoint: '/CRM/Visits/', payload: payload);
+
+  /// Queue a "log call" while offline.
+  Future<void> enqueueCall(Map<String, dynamic> payload) => enqueueAction(
+      type: 'call', method: 'POST', endpoint: '/CRM/Calls/', payload: payload);
+
+  /// Try to push every queued action. Safe to call repeatedly.
   Future<void> flush() async {
     if (_flushing) return;
     _flushing = true;
@@ -93,10 +160,14 @@ class OfflineQueue {
       if (list.isEmpty) return;
       if (!await isOnline()) return;
 
-      final remaining = <PendingOrder>[];
-      for (final p in list) {
+      final remaining = <PendingAction>[];
+      for (final a in list) {
         try {
-          await DioClient.instance.dio.post('/Orders/add/', data: p.payload);
+          if (a.method == 'PUT') {
+            await DioClient.instance.dio.put(a.endpoint, data: a.payload);
+          } else {
+            await DioClient.instance.dio.post(a.endpoint, data: a.payload);
+          }
           // success -> drop it
         } on DioException catch (e) {
           final status = e.response?.statusCode;
@@ -105,10 +176,10 @@ class OfflineQueue {
               e.type == DioExceptionType.connectionTimeout ||
               e.type == DioExceptionType.sendTimeout ||
               e.type == DioExceptionType.receiveTimeout;
-          // Keep it if it's a transient failure (offline / auth expired / server down);
-          // drop it on a genuine client rejection (bad data) so we don't loop forever.
+          // Keep it if transient (offline / auth expired / server down); drop it
+          // on a genuine client rejection (bad data) so we don't loop forever.
           if (networky || status == 401 || (status != null && status >= 500)) {
-            remaining.add(p);
+            remaining.add(a);
           }
         }
       }
