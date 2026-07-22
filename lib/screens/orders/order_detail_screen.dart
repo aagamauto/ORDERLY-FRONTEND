@@ -7,6 +7,7 @@ import '../../providers/order_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/order_status.dart';
+import '../../widgets/defaulter_badge.dart';
 import '../../widgets/responsive.dart';
 
 class OrderDetailScreen extends ConsumerWidget {
@@ -386,6 +387,10 @@ class _StatusCard extends StatelessWidget {
                           fontSize: 12,
                           color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
+                  if (summary.isDefaulter) ...[
+                    const SizedBox(height: 6),
+                    const DefaulterBadge(),
+                  ],
                 ],
               ),
             ),

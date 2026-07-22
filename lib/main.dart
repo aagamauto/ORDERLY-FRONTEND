@@ -30,6 +30,8 @@ import 'screens/calls/follow_up_calls_screen.dart';
 import 'screens/crm/crm_config_screen.dart';
 import 'screens/crm/crm_dashboard_screen.dart';
 import 'screens/profile/profile_screen.dart';
+import 'screens/defaulters/defaulters_screen.dart';
+import 'screens/short_orders/short_orders_screen.dart';
 import 'screens/visits/visit_planner_screen.dart';
 import 'services/api_service.dart';
 import 'services/notification_service.dart';
@@ -214,6 +216,16 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: '/crm/config',
         builder: (context, state) => const CrmConfigScreen(),
+      ),
+
+      // ── Defaulters + Short orders ───────────────────────────────────────────
+      GoRoute(
+        path: '/defaulters',
+        builder: (context, state) => const DefaultersScreen(),
+      ),
+      GoRoute(
+        path: '/short-orders',
+        builder: (context, state) => const ShortOrdersScreen(),
       ),
     ],
   );

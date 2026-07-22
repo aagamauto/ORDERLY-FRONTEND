@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/customer_model.dart';
 import '../../providers/customer_provider.dart';
+import '../../widgets/defaulter_badge.dart';
 
 class CustomersScreen extends ConsumerStatefulWidget {
   const CustomersScreen({super.key});
@@ -178,11 +179,21 @@ class _CustomerCard extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
-        title: Text(
-          customer.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        title: Row(
+          children: [
+            Flexible(
+              child: Text(
+                customer.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            if (customer.isDefaulter) ...[
+              const SizedBox(width: 6),
+              const DefaulterBadge(compact: true),
+            ],
+          ],
         ),
         subtitle: Text(
           '${customer.city}, ${customer.state}  •  📞 ${customer.contact}',

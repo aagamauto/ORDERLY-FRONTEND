@@ -50,6 +50,52 @@ final class CustomerListProvider
 
 String _$customerListHash() => r'9ee71d7cada2662440c232b8c4053f60474f635c';
 
+/// Only customers flagged as defaulters.
+
+@ProviderFor(defaulterList)
+final defaulterListProvider = DefaulterListProvider._();
+
+/// Only customers flagged as defaulters.
+
+final class DefaulterListProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<CustomerModel>>,
+          List<CustomerModel>,
+          FutureOr<List<CustomerModel>>
+        >
+    with
+        $FutureModifier<List<CustomerModel>>,
+        $FutureProvider<List<CustomerModel>> {
+  /// Only customers flagged as defaulters.
+  DefaulterListProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'defaulterListProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$defaulterListHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<CustomerModel>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<CustomerModel>> create(Ref ref) {
+    return defaulterList(ref);
+  }
+}
+
+String _$defaulterListHash() => r'9c1410f5e2b92b6fa332e45839990896da319b6f';
+
 @ProviderFor(customerById)
 final customerByIdProvider = CustomerByIdFamily._();
 

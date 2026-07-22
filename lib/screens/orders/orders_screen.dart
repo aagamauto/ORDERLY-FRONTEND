@@ -8,6 +8,7 @@ import '../../providers/order_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/order_status.dart';
+import '../../widgets/defaulter_badge.dart';
 
 class OrdersScreen extends ConsumerStatefulWidget {
   const OrdersScreen({super.key, this.mineOnly = false});
@@ -261,12 +262,22 @@ class _OrderCardState extends ConsumerState<_OrderCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      order.name,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            order.name,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 15),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                        if (order.isDefaulter) ...[
+                          const SizedBox(width: 6),
+                          const DefaulterBadge(compact: true),
+                        ],
+                      ],
                     ),
                     Text(
                       order.shop,

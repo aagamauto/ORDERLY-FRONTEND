@@ -14,6 +14,16 @@ Future<List<CustomerModel>> customerList(Ref ref) async {
       .toList();
 }
 
+/// Only customers flagged as defaulters.
+@riverpod
+Future<List<CustomerModel>> defaulterList(Ref ref) async {
+  final res = await DioClient.instance.dio
+      .get('/Customer/', queryParameters: {'defaulters_only': true});
+  return (res.data as List)
+      .map((j) => CustomerModel.fromJson(j as Map<String, dynamic>))
+      .toList();
+}
+
 @riverpod
 Future<CustomerModel> customerById(Ref ref, int custId) async {
   final res = await DioClient.instance.dio.get('/Customer/$custId/');

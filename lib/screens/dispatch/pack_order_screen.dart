@@ -11,6 +11,7 @@ import '../../providers/product_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/order_status.dart';
+import '../../widgets/defaulter_badge.dart';
 
 /// Packing-staff screen: enter MRP + packed quantity per item to make the bill,
 /// then optionally dispatch. MRP auto-loads from the product's last value.
@@ -253,6 +254,7 @@ class _PackOrderScreenState extends ConsumerState<PackOrderScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(12),
                   children: [
+                    if (detail.isDefaulter) const DefaulterBanner(reason: null),
                     Text(
                       'Enter MRP and the quantity you actually packed. '
                       'Packing less than ordered marks the order Partially Dispatched.',

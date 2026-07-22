@@ -6,6 +6,7 @@ import '../../models/order_model.dart';
 import '../../providers/order_provider.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/order_status.dart';
+import '../../widgets/defaulter_badge.dart';
 
 /// The Employee/Admin work screen: orders still needing action, oldest first.
 class DispatchQueueScreen extends ConsumerWidget {
@@ -96,12 +97,22 @@ class _QueueCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      order.name.isNotEmpty ? order.name : order.shop,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            order.name.isNotEmpty ? order.name : order.shop,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 15),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (order.isDefaulter) ...[
+                          const SizedBox(width: 6),
+                          const DefaulterBadge(compact: true),
+                        ],
+                      ],
                     ),
                     Text(
                       order.shop,

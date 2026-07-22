@@ -23,6 +23,7 @@ class OrderSummary {
     required this.contact,
     required this.shop,
     this.userName,
+    this.isDefaulter = false,
   });
 
   final int ordId;
@@ -38,6 +39,7 @@ class OrderSummary {
   final String contact;
   final String shop;
   final String? userName; // name of the staff user who created the order
+  final bool isDefaulter;
 
   bool get isPending => dispatchDate == null;
   bool get isPacked => status == 'Packed';
@@ -66,6 +68,7 @@ class OrderSummary {
         contact: (j['contact'] as String?) ?? '',
         shop: (j['shop'] as String?) ?? '',
         userName: j['user_name'] as String?,
+        isDefaulter: (j['is_defaulter'] as bool?) ?? false,
       );
 }
 
@@ -168,6 +171,8 @@ class OrderDetail {
     this.payment,
     this.lastEditedByName,
     this.lastEditedDate,
+    this.customerName,
+    this.isDefaulter = false,
   });
 
   final List<OrderItem> items;
@@ -178,6 +183,10 @@ class OrderDetail {
 
   /// Date this order was last edited (null if never edited).
   final DateTime? lastEditedDate;
+
+  /// The order's customer name + defaulter flag (for the packing / detail screens).
+  final String? customerName;
+  final bool isDefaulter;
 
   factory OrderDetail.fromJson(Map<String, dynamic> j) => OrderDetail(
         items: (j['Orders'] as List)
@@ -190,6 +199,8 @@ class OrderDetail {
         lastEditedDate: j['LastEditedDate'] != null
             ? DateTime.parse(j['LastEditedDate'] as String)
             : null,
+        customerName: j['CustomerName'] as String?,
+        isDefaulter: (j['IsDefaulter'] as bool?) ?? false,
       );
 }
 
@@ -254,6 +265,7 @@ class QueueOrder {
     required this.city,
     required this.state,
     required this.contact,
+    this.isDefaulter = false,
   });
 
   final int ordId;
@@ -268,6 +280,7 @@ class QueueOrder {
   final String city;
   final String state;
   final String contact;
+  final bool isDefaulter;
 
   factory QueueOrder.fromJson(Map<String, dynamic> j) => QueueOrder(
         ordId: (j['ord_id'] as int?) ?? 0,
@@ -284,5 +297,6 @@ class QueueOrder {
         city: (j['city'] as String?) ?? '',
         state: (j['state'] as String?) ?? '',
         contact: (j['contact'] as String?) ?? '',
+        isDefaulter: (j['is_defaulter'] as bool?) ?? false,
       );
 }

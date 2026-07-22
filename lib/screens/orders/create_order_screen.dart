@@ -16,6 +16,10 @@ import '../../services/offline_queue.dart';
 import '../../utils/constants.dart';
 import '../../utils/format_utils.dart';
 import '../../widgets/responsive.dart';
+import '../../models/pending_model.dart';
+import '../../providers/shortfall_provider.dart';
+import '../../widgets/defaulter_badge.dart';
+import '../../widgets/mark_defaulter.dart';
 
 class CreateOrderScreen extends ConsumerStatefulWidget {
   const CreateOrderScreen({super.key});
@@ -30,6 +34,13 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   int _amount = 0;
   String _mode = 'Cash';
   bool _loading = false;
+  // Customers flagged as defaulters during THIS session (optimistic UI).
+  final Set<int> _flaggedNow = {};
+
+  bool get _isSelectedDefaulter =>
+      _selectedCustomer != null &&
+      (_selectedCustomer!.isDefaulter ||
+          _flaggedNow.contains(_selectedCustomer!.custId));
 
   // TypeAhead controllers for product name per item
   final List<TextEditingController> _controllers = [TextEditingController()];
@@ -72,6 +83,86 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     });
   }
 
+  /// Add a pending short item into the order (fills the blank first row if any).
+  void _addPendingItem(PendingShort p) {
+    setState(() {
+      if (_items.length == 1 && _items[0].pname.isEmpty) {
+        _items[0]
+          ..pname = p.pname
+          ..category = p.category ?? ''
+          ..quantity = p.shortQty;
+        _controllers[0].text = p.pname;
+        _categoryControllers[0].text = p.category ?? '';
+      } else {
+        _items.add(OrderItemCreate(
+            pname: p.pname, category: p.category ?? '', quantity: p.shortQty));
+        _controllers.add(TextEditingController(text: p.pname));
+        _categoryControllers.add(TextEditingController(text: p.category ?? ''));
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Added ${p.pname} × ${p.shortQty}'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  /// Card of the customer's pending short items, each one-tap addable.
+  Widget _pendingShortsCard(int custId) {
+    final async = ref.watch(pendingShortsProvider(custId));
+    return async.maybeWhen(
+      data: (list) {
+        if (list.isEmpty) return const SizedBox.shrink();
+        final scheme = Theme.of(context).colorScheme;
+        return Card(
+          margin: const EdgeInsets.only(top: 8),
+          color: scheme.surfaceContainerHighest,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.history, size: 18, color: scheme.primary),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text('Pending from previous orders',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: scheme.primary)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                ...list.map((p) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 1),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text('${p.pname}  —  short ${p.shortQty}',
+                                maxLines: 1, overflow: TextOverflow.ellipsis),
+                          ),
+                          TextButton.icon(
+                            onPressed: () => _addPendingItem(p),
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text('Add'),
+                            style: TextButton.styleFrom(
+                                visualDensity: VisualDensity.compact),
+                          ),
+                        ],
+                      ),
+                    )),
+              ],
+            ),
+          ),
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
+    );
+  }
+
   Future<void> _submit() async {
     if (_selectedCustomer == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -91,6 +182,31 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       );
       return;
     }
+
+    // Defaulter guard — confirm before taking an order for a flagged customer.
+    if (_isSelectedDefaulter) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Defaulter customer'),
+          content: Text(
+              '${_selectedCustomer!.name} is flagged as a DEFAULTER (refuses payment). Take this order anyway?'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(ctx).colorScheme.error),
+              child: const Text('Proceed anyway'),
+            ),
+          ],
+        ),
+      );
+      if (proceed != true) return;
+    }
+
     setState(() => _loading = true);
 
     // The order is tied to the logged-in salesman on the server (from the JWT),
@@ -239,6 +355,37 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                     ref.invalidate(customerListProvider);
                   },
                 ),
+                if (_selectedCustomer != null) ...[
+                  if (_isSelectedDefaulter)
+                    DefaulterBanner(reason: _selectedCustomer!.defaulterReason)
+                  else
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () async {
+                          final r = await showMarkDefaulterSheet(
+                            context,
+                            ref,
+                            custId: _selectedCustomer!.custId,
+                            custName: _selectedCustomer!.name,
+                            currentlyDefaulter: false,
+                          );
+                          if (r == true) {
+                            setState(() =>
+                                _flaggedNow.add(_selectedCustomer!.custId));
+                          }
+                        },
+                        icon: Icon(Icons.money_off,
+                            size: 18,
+                            color: Theme.of(context).colorScheme.error),
+                        style: TextButton.styleFrom(
+                            foregroundColor:
+                                Theme.of(context).colorScheme.error),
+                        label: const Text('Flag as defaulter'),
+                      ),
+                    ),
+                  _pendingShortsCard(_selectedCustomer!.custId),
+                ],
                 const SizedBox(height: 20),
 
                 // ── Section 2: Order Items ───────────────────────────

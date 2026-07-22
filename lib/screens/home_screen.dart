@@ -91,6 +91,15 @@ class HomeScreen extends ConsumerWidget {
             icon: Icons.call_outlined,
             label: 'Follow-up Calls',
             route: '/calls/today'),
+      _navCard(context,
+          icon: Icons.money_off,
+          label: 'Defaulters',
+          route: '/defaulters'),
+      if (userRole == 'Admin' || userRole == 'Employee')
+        _navCard(context,
+            icon: Icons.report_gmailerrorred_outlined,
+            label: 'Short Orders',
+            route: '/short-orders'),
     ];
 
     return Scaffold(

@@ -6,6 +6,8 @@ class CustomerModel {
     required this.state,
     required this.contact,
     required this.shop,
+    this.isDefaulter = false,
+    this.defaulterReason,
   });
 
   final int custId;
@@ -14,6 +16,8 @@ class CustomerModel {
   final String state;
   final String contact;
   final String shop;
+  final bool isDefaulter;
+  final String? defaulterReason;
 
   factory CustomerModel.fromJson(Map<String, dynamic> j) => CustomerModel(
         custId: j['cust_id'] as int,
@@ -22,6 +26,8 @@ class CustomerModel {
         state: j['state'] as String,
         contact: j['contact'] as String,
         shop: j['shop'] as String,
+        isDefaulter: (j['is_defaulter'] as bool?) ?? false,
+        defaulterReason: j['defaulter_reason'] as String?,
       );
 
   Map<String, dynamic> toJson() => {

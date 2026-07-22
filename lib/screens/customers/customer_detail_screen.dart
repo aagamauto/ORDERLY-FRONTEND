@@ -12,6 +12,8 @@ import '../../services/api_service.dart';
 import '../../utils/dialer.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/order_status.dart';
+import '../../widgets/defaulter_badge.dart';
+import '../../widgets/mark_defaulter.dart';
 
 class CustomerDetailScreen extends ConsumerStatefulWidget {
   const CustomerDetailScreen({super.key, required this.custId});
@@ -139,15 +141,38 @@ class _CustomerDetailBody extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  customer.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        customer.name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                    if (customer.isDefaulter) ...[
+                                      const SizedBox(width: 6),
+                                      const DefaulterBadge(compact: true),
+                                    ],
+                                  ],
                                 ),
+                                if (customer.isDefaulter &&
+                                    customer.defaulterReason != null &&
+                                    customer.defaulterReason!.isNotEmpty)
+                                  Text(
+                                    customer.defaulterReason!,
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .error),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '${customer.city}, ${customer.state}',
@@ -220,10 +245,45 @@ class _CustomerDetailBody extends ConsumerWidget {
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                      child: ElevatedButton.icon(
-                        onPressed: () => _showUpdateSheet(context, ref),
-                        icon: const Icon(Icons.edit_outlined),
-                        label: const Text('Update Details'),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _showUpdateSheet(context, ref),
+                              icon: const Icon(Icons.edit_outlined),
+                              label: const Text('Update'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => showMarkDefaulterSheet(
+                                context,
+                                ref,
+                                custId: customer.custId,
+                                custName: customer.name,
+                                currentlyDefaulter: customer.isDefaulter,
+                                currentReason: customer.defaulterReason,
+                              ),
+                              icon: Icon(
+                                customer.isDefaulter
+                                    ? Icons.check_circle_outline
+                                    : Icons.money_off,
+                                size: 18,
+                                color: customer.isDefaulter
+                                    ? null
+                                    : Theme.of(context).colorScheme.error,
+                              ),
+                              style: customer.isDefaulter
+                                  ? null
+                                  : OutlinedButton.styleFrom(
+                                      foregroundColor:
+                                          Theme.of(context).colorScheme.error),
+                              label: Text(
+                                  customer.isDefaulter ? 'Clear' : 'Defaulter'),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
