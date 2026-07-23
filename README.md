@@ -11,6 +11,75 @@ dispatch; admins manage users, catalogues, and CRM settings.
 
 ---
 
+## Architecture & data flow
+
+### App architecture (layers)
+```mermaid
+flowchart TD
+    subgraph ScreensL["UI — screens/"]
+        SO["Orders · Create Order"]
+        SC["Customers · Defaulters"]
+        SD["Dispatch · Pack"]
+        SS["Short Orders"]
+        SR["CRM · Visits · Calls"]
+    end
+    subgraph StateL["State — providers/ (Riverpod code-gen)"]
+        PV["order · customer · shortfall · payment · crm · auth …"]
+    end
+    subgraph SvcL["services/"]
+        DIO["api_service — Dio + JWT interceptor"]
+        OQ["offline_queue"]
+        NT["notification_service — FCM"]
+    end
+    TOK[("secure storage — JWT")]
+    BE[("FastAPI backend — /api")]
+
+    ScreensL --> StateL --> DIO
+    ScreensL -.->|order / visit / call made offline| OQ
+    DIO <-->|HTTPS + Bearer JWT| BE
+    OQ -.->|auto-sync when online| BE
+    DIO --- TOK
+    NT -.->|push → refresh| ScreensL
+```
+
+### Offline-safe order submit
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Salesman
+    participant App
+    participant Q as Offline queue
+    participant API as Backend
+
+    U->>App: Submit order (client_uuid attached)
+    alt Online
+        App->>API: POST /Orders/add/
+        API-->>App: created
+    else Offline
+        App->>Q: enqueue order
+        Note over App,Q: Home shows "N waiting to sync"
+        Q->>API: retry when connectivity returns
+        API-->>Q: created (dedup by client_uuid — never doubles)
+    end
+```
+
+### Defaulter & short-order UX
+```mermaid
+flowchart LR
+    subgraph FlagG["Flag a defaulter (any role)"]
+        F1["Tap 'Flag as defaulter' from<br/>list / detail / order screen"] --> F2["PUT /Customer/{id}/Defaulter"]
+        F2 --> F3["Red DEFAULTER badge everywhere<br/>+ confirm on order submit"]
+    end
+    subgraph ShortG["Short orders"]
+        S1["Backend logs a partial dispatch"] --> S2["Pending 'short' item"]
+        S2 --> S3["Next order screen shows it<br/>→ one-tap Add"]
+        S3 --> S4["Re-ordering the product<br/>clears the whole pending"]
+        S2 --> S5["Short Orders screen:<br/>Pending + Product analysis"]
+    end
+```
+
+---
+
 ## Features — screen by screen
 
 ### Core
@@ -24,7 +93,7 @@ dispatch; admins manage users, catalogues, and CRM settings.
 | Screen | What it does |
 |---|---|
 | **Orders** | List of all orders (or "my orders"); status chips; pack/dispatch actions for staff. |
-| **Create Order** | Pick a customer + line items (searchable product dropdowns), payment mode; **works offline** (queues and auto-syncs), de-duplicated so a dropped connection never creates a double order. |
+| **Create Order** | Pick a customer + line items (searchable product dropdowns), payment mode; **works offline** (queues and auto-syncs), de-duplicated so a dropped connection never creates a double order. Also surfaces the customer's **pending short items** (one-tap add) and a **DEFAULTER** warning banner + confirm when the customer is flagged. |
 | **Edit Order** | Change items/customer/payment; edits are attributed to the editor on the backend. |
 | **Order Detail** | Items, payment, status, and a "Last edited by …" line; each item shows its unit MRP; staff see Pack / Dispatch / Edit / Delete. |
 
@@ -42,7 +111,13 @@ dispatch; admins manage users, catalogues, and CRM settings.
 | Screen | What it does |
 |---|---|
 | **Dispatch Queue** | Orders still needing action (oldest first) with a waiting-days indicator. |
-| **Pack Order** | Enter MRP + packed quantity per item (a "max N" hint clears on typing; empty = pack full qty) → builds the bill; Save or Pack & Dispatch. |
+| **Pack Order** | Enter MRP + packed quantity per item (a "max N" hint clears on typing; empty = pack full qty) → builds the bill; Save or Pack & Dispatch. A **DEFAULTER** banner shows at the top if the customer is flagged. |
+
+### Credit control & back-orders
+| Screen | Role | What it does |
+|---|---|---|
+| **Defaulters** | All | List of every customer flagged as "won't pay". **Anyone** can flag/unflag from the customers list, customer detail, or the order screen — a red **DEFAULTER** badge then shows on all of those plus a full banner on the create-order & pack screens, and taking an order for one asks to confirm first. |
+| **Short Orders** | Admin / Employee | Two tabs — **Pending** (unfulfilled back-orders grouped by customer) and **Product analysis** (which products keep going short, recurring ones flagged red). A customer's pending shorts also appear during order-taking with one-tap **Add**; re-ordering a product clears its whole pending. |
 
 ### Dashboards (Admin / Salesman)
 | Screen | What it does |
@@ -65,6 +140,11 @@ dispatch; admins manage users, catalogues, and CRM settings.
   the device and auto-synced when connectivity returns (with a sync badge).
 - **Tap-to-call** — customer numbers open the phone dialer (`url_launcher`).
 - **Push notifications** — FCM (new/edited orders, dispatch alerts).
+- **Defaulter badges** — a red DEFAULTER chip/banner surfaces flagged customers on
+  every relevant screen (list, detail, orders, dispatch queue, packing) + a confirm
+  before an order is taken for them.
+- **Recurring-short alert** — a single throttled push warns dispatch staff when a
+  product keeps going short (≥ 3× in 30 days), so no spam.
 - **Responsive** — layouts adapt from small phones to tablets (content is
   width-capped and top-aligned); light/dark aware via the theme.
 - **Indian currency formatting** — e.g. `₹12,34,567`.
@@ -121,8 +201,9 @@ lib/
 ├─ screens/               # UI, grouped by feature
 │   ├─ orders/  customers/  products/  payments/  catalogues/
 │   ├─ dispatch/  dashboard/  admin/  profile/
+│   ├─ defaulters/  short_orders/     # credit control + back-orders
 │   └─ visits/  calls/  crm/          # CRM subsystem
 ├─ services/              # api_service (Dio), offline_queue, notification_service
 ├─ utils/                 # constants (base URL), formatting, dialer, order status
-└─ widgets/               # shared widgets (responsive helpers)
+└─ widgets/               # shared widgets (responsive helpers, defaulter badge/banner, mark-defaulter sheet)
 ```
